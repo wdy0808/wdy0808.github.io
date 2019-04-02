@@ -1,0 +1,250 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+    
+  中文乱码问题总结 - 
+  
+  </title>
+ <meta name="description" content="">
+ <link href="atom.xml" rel="alternate" title="" type="application/atom+xml">
+    <link rel="stylesheet" href="asset/css/foundation.min.css" />
+    <link rel="stylesheet" href="asset/css/docs.css" />
+
+    <script src="asset/js/vendor/modernizr.js"></script>
+    <script src="asset/js/vendor/jquery.js"></script>
+    <script src="asset/highlightjs/highlight.pack.js"></script>
+    <link href="asset/highlightjs/styles/github.css" media="screen, projection" rel="stylesheet" type="text/css">
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+  </head>
+  <body class="antialiased hide-extras">
+    
+    <div class="marketing off-canvas-wrap" data-offcanvas>
+      <div class="inner-wrap">
+
+
+<nav class="top-bar docs-bar hide-for-small" data-topbar>
+
+<div id="header">
+    <h1><a href="index.html"></a></h1>
+</div>
+
+</nav>
+        <nav class="tab-bar show-for-small">
+  <a href="javascript:void(0)" class="left-off-canvas-toggle menu-icon">
+    <span> &nbsp; </span>
+  </a>
+</nav>
+
+<aside class="left-off-canvas-menu">
+      <ul class="off-canvas-list">
+      <li><a href="index.html">Home</a></li>
+      
+        <li class="divider"></li>
+        <li><label>CPlusPlus</label></li>
+
+          
+            <li><a title="中文乱码问题总结" href="15541749831215.html">中文乱码问题总结</a></li>
+          
+
+      
+      </ul>
+    </aside>
+
+<a class="exit-off-canvas" href="#"></a>
+
+        <section id="main-content" role="main" class="scroll-container">
+
+          <div class="row">
+            <div class="large-3 medium-3 columns">
+              <div class="hide-for-small">
+                <div class="sidebar">
+                <nav>
+                  <ul id="side-nav" class="side-nav">
+
+                    
+                      <li class="side-title"><span>CPlusPlus</span></li>
+                        
+                          <li><a title="中文乱码问题总结" href="15541749831215.html">中文乱码问题总结</a></li>
+                        
+
+                    
+                  </ul>
+                </nav>
+                </div>
+              </div>
+            </div>
+            <div class="large-9 medium-9 columns">
+
+ <div class="markdown-body">
+<h1>中文乱码问题总结</h1>
+
+<p>最近在实现项目时，需要调用windows的MessageBox接口弹出对话框，当传入字符串是中文时，对话框显示乱码。将文件格式另存为utf-8 with bom或者gb2312就可以正常显示，后来花时间研究了编码的问题，大概摸清楚了。</p>
+
+<h2 id="toc_0">乱码原因</h2>
+
+<p>程序出现乱码的本质原因是用错误的字符集去解析字符。计算机运行的程序里，程序中的每个字符都会被转换为二进制，不同的字符集就是将字符到二进制的不同映射方式。</p>
+
+<h2 id="toc_1">字符集</h2>
+
+<table>
+<thead>
+<tr>
+<th>字符集</th>
+<th>年份</th>
+<th>兼容性</th>
+<th>编码形式</th>
+<th>备注</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>ASCII</td>
+<td>1967</td>
+<td></td>
+<td>使用单字节，可表示256个字符</td>
+<td>美国标准，不能满足其他国家甚至其他英语国家，如￡</td>
+</tr>
+<tr>
+<td>GB2312/GB2312-80</td>
+<td>1981.5.1</td>
+<td>ASCII</td>
+<td>任意字符都采用2字节</td>
+<td>简化字汉字，以及一般常用字母和符号。对于人名、古汉语等方面出现的罕用字无法表示</td>
+</tr>
+<tr>
+<td>GBK</td>
+<td>1995.12</td>
+<td>ASCII,GB2312</td>
+<td>任意字符都采用2字节</td>
+<td>加入对繁体字支持</td>
+</tr>
+<tr>
+<td>Unicode</td>
+<td>1984.4</td>
+<td></td>
+<td>定长2字节/4字节编码</td>
+<td>定长编码便于计算机处理。可表示所有字符，java内部使用unicode</td>
+</tr>
+<tr>
+<td>utf-8</td>
+<td></td>
+<td>兼容ASCII</td>
+<td>变长1-6字节。一般英文1字节，中文3字节</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="toc_2">字符集与程序的关系</h2>
+
+<p>先从程序的执行流程开始谈起，下图是一个文件从编写到编译到执行的过程。<br/>
+<img src="media/15541749831215/15541819142012.jpg" alt="" style="width:785px;"/><br/>
+在这个过程中存在三种字符集概念：</p>
+
+<ol>
+<li>源码字符集：源程序代码编码字符集，可以通过vscode、notepad++等文本编辑工具查看某个文件的编码字符集，该编码字符集就是源码字符集。源码字符集主要决定源代码转换成字节码的方式。所以，如果代码文件中包含中文字符，那么源码字符集将决定该字符转换后的字节码。</li>
+<li>执行字符集：执行字符集是程序编译器编译程序时采用的字符集。由上图可以看到，源代码文件经过编译器后生成.s后缀的汇编程序文件，执行字符集决定如何将转换成字节码的代码文件再次解释、检查语法、生成汇编语言。如果执行字符集与源码字符集不相同，会造成中文乱码，甚至会出现奇怪的编译错误。</li>
+<li>解析字符集：程序执行时需要显示原字符时采用的解析字符集，比如在控制台显示程序中的字符串，会通过解析字符集找到特定的字符进行显示。</li>
+</ol>
+
+<h3 id="toc_3">字符集默认值</h3>
+
+<p><strong><em>locale</em></strong>: windows系统中的一项<strong>系统设置</strong>，用来决定文件编码方式，对于中国大陆，locale是Chinese PRC，则此时ANSI编码为GBK。可以理解为系统默认的编码方式。</p>
+
+<ul>
+<li>执行字符集：在编译器无法识别源代码使用何种字符集时采用locale。</li>
+<li>解析字符集：在默认情况下是根据locale设置的，即GBK编码。</li>
+</ul>
+
+<h2 id="toc_4">乱码案例重现</h2>
+
+<pre><code class="language-cpp">const char* test = &quot;啊啊&quot;;
+</code></pre>
+
+<p>源文件采用utf-8编码，上述代码的字符串会被编码为E5958A;E5958A，使用GBK编码解析时解析为<em>鍟婂晩</em>，这就是乱码产生的原因。如果只有一个<em>啊</em>的话会出现编译错误，因为GBK编码是定长2字节，解析<em>啊</em>时会把最后一字节与后面的分号编码的字节组成新的GBK字符。</p>
+
+<h2 id="toc_5">解决方案</h2>
+
+<p>乱码问题本质上就是源代码字符集与执行字符集和解析字符集不同产生，解决方案就是修改前者或后者。</p>
+
+<ol>
+<li>修改源代码字符集：可以将源代码字符集修改成与执行字符集相同的GBK编码或者utf-8 with  bom。utf-8 with bom可行的原因在于该编码方式会在编码起点加上0xef,0xbb,0xbf三个字节的bom头，编译器通过bom头可以判断源代码使用utf-8进行编码，不会根据locale选择编码方式。缺点是无法在大型项目进行代码共享，因为utf-8在网站、论坛使用更广泛。</li>
+<li>修改执行字符集与解析字符集：对于visual studio，添加命令/utf-8进行设置。</li>
+</ol>
+
+<p>找到很好用的<a href="http://www.mytju.com/classcode/tools/messyCodeRecover.asp">检查乱码</a>的网站</p>
+
+
+</div>
+
+<br /><br />
+<hr />
+
+<div class="row clearfix">
+  <div class="large-6 columns">
+	<div class="text-left" style="padding:15px 0px;">
+		
+	</div>
+  </div>
+  <div class="large-6 columns">
+	<div class="text-right" style="padding:15px 0px;">
+		
+	</div>
+  </div>
+</div>
+
+<div class="row">
+<div style="padding:0px 0.93em;" class="share-comments">
+
+</div>
+</div>
+<script type="text/javascript">
+	$(function(){
+		var currentURL = '15541749831215.html';
+		$('#side-nav a').each(function(){
+			if($(this).attr('href') == currentURL){
+				$(this).parent().addClass('active');
+			}
+		});
+	});
+</script>  
+</div></div>
+
+
+<div class="page-bottom">
+  <div class="row">
+  <hr />
+  <div class="small-9 columns">
+  <p class="copyright">Copyright &copy; 2015
+Powered by <a target="_blank" href="http://www.mweb.im">MWeb</a>,&nbsp; 
+Theme used <a target="_blank" href="http://github.com">GitHub CSS</a>.</p>
+  </div>
+  <div class="small-3 columns">
+  <p class="copyright text-right"><a href="#header">TOP</a></p>
+  </div>
+   
+  </div>
+</div>
+
+        </section>
+      </div>
+    </div>
+    
+    
+    <script src="asset/js/foundation.min.js"></script>
+    <script src="asset/js/foundation/foundation.offcanvas.js"></script>
+    <script>
+      $(document).foundation();
+
+     
+    </script>
+    
+
+
+  </body>
+</html>
