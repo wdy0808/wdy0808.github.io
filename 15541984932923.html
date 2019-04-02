@@ -116,14 +116,8 @@
 
 <h3 id="toc_3">实现原理</h3>
 
-<pre><code class="language-mermaid">graph LR
-    start[开始build] --&gt; prebuild((执行脚本))
-    getGitIdScript(#include &amp;apos;&amp;apos;stdafx.h&amp;apos;&amp;apos;&lt;br&gt;extern const std::string gitCommitId=&amp;apos;&amp;apos;d8as8d&amp;apos;&amp;apos;) -- 生成 --- prebuild
-    style getGitIdScript fill:#f4bc42,stroke:#777,stroke-width:3px,fill-opacity:0.5
-    prebuild --&gt; compile[编译]
-</code></pre>
-
-<p>之后就可以直接在dll代码中引入该头文件访问git id</p>
+<p><img src="media/15541984932923/15542202191272.jpg" alt="" style="width:706px;"/><br/>
+之后就可以直接在dll代码中引入该头文件访问git id</p>
 
 
 </div>
