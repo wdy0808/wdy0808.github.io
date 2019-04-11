@@ -63,6 +63,14 @@
           
 
       
+        <li class="divider"></li>
+        <li><label>Go</label></li>
+
+          
+            <li><a title="关于dep和go modules" href="15549797838222.html">关于dep和go modules</a></li>
+          
+
+      
       </ul>
     </aside>
 
@@ -94,6 +102,12 @@
                         
 
                     
+                      <li class="side-title"><span>Go</span></li>
+                        
+                          <li><a title="关于dep和go modules" href="15549797838222.html">关于dep和go modules</a></li>
+                        
+
+                    
                   </ul>
                 </nav>
                 </div>
@@ -106,38 +120,66 @@
 
 	
 		<div class="markdown-body">
-		<h1>《重构-改善即有代码的设计》</h1>
+		<h1>关于dep和go modules</h1>
 
-		<h2 id="toc_0">class</h2>
+		<h2 id="toc_0">主流依赖管理解决方案</h2>
 
-<ul>
-<li>去掉旧函数：如果旧函数是public，而有不想修改其他类的接口，可以保留旧函数调用新函数</li>
-<li>过大的类：先确定客户端如何使用它们，提炼接口</li>
-<li>针对某一外界变化的所有相应修改，都只应该发生在单一类中，而这个新类内的所有内容都应该反应此变化</li>
-<li>可以妥协复用父类代码，这确实有点问题，但可以接受。然而不支持父类接口是无法接受的</li>
-<li>尽量删去switch语句，可以将每个case抽出来形成一个子类，最后将原函数声明为虚函数。使用多态技术替换switch</li>
-<li>减少平行继承体系</li>
-</ul>
+<ol>
+<li>manifest file记录依赖信息</li>
+<li>使用满足manifest file需求的最新package版本</li>
+<li>使用lock file记录依赖module具体版本号，由算法生成</li>
+<li>从manifest file到lock file的版本选择是np-completeness search problem</li>
+</ol>
 
-<h2 id="toc_1">function</h2>
+<h2 id="toc_1">go modules解决方案</h2>
 
-<ul>
-<li>尽量去除临时变量</li>
-<li>使用短函数：短函数便于理解，其中的关键是一个好名字，读者可以通过名字了解函数作用<br/>
-就算只有一行代码，如果它需要以注释来说明，那也值得将它提炼到独立函数</li>
-<li>函数应该被放在它所使用的数据的所属对象内</li>
-</ul>
+<h3 id="toc_2">版本号</h3>
 
-<h2 id="toc_2">common</h2>
+<ol>
+<li>确立版本号具体要求，表示为v major.minor.patch，如v1.2.0。</li>
+<li>major意味着存在不兼容改变。在go <br/>
+模型中意味着不同的package，表现为：<br/>
+2.1. 对major version大于2的module，需要在import路径上体现，如<code>import &quot;github.com/my/mod/v2/mypkg&quot;</code><br/>
+2.2. 在一个项目中同时存在对一个package不同版本的依赖被认为是合理的</li>
+<li>对于major version相同的版本号，需要向后兼容，即1.3.5需要兼容1.2.8。</li>
+<li>第三条对major version为0时不成立</li>
+</ol>
 
-<ul>
-<li>命名：好的代码应该清楚表达自己的功能</li>
-<li>去除重复代码</li>
-<li>编写代码前先写测试代码，这让你把注意力集中在几口而非实现</li>
-</ul>
+<h3 id="toc_3">版本选择</h3>
+
+<ol>
+<li>go modules模型中每个项目申明他们依赖package的最小版本</li>
+<li>go modules每次只会选择满足依赖的最小版本号，即如果项目依赖<em>mypkg v1.6.2</em>那么安装依赖package时只会安装v1.6.2，不管是否存在更新的版本。</li>
+<li>存在依赖冲突时，选最大的那个版本号。如项目同时依赖<em>mypkg v1.3.0</em>和<em>mypkg v1.4.0</em>，那么最终项目构建时使用<em>mypkg v1.4.0</em></li>
+<li>以来package只能由用户手动完成</li>
+<li>理由<br/>
+5.1. High-Fidelity，高保真性，不做不必要的更新。<br/>
+5.2. 算法实现是线性</li>
+</ol>
+
+<h2 id="toc_4">总结</h2>
+
+<h3 id="toc_5">why dep？</h3>
+
+<ol>
+<li>在vgo出来之前一度被认为将在未来某个时刻merge进go，形成go dep</li>
+<li>使用主流解决方案，易于理解</li>
+<li>对源代码修改较少</li>
+</ol>
+
+<h3 id="toc_6">why go modules？</h3>
+
+<ol>
+<li>官方工具</li>
+<li>将依赖管理集成到go命令当中，如go build时直接下载依赖项，操作简单。</li>
+<li>允许在单个构建中使用程序的多个主要版本</li>
+</ol>
 
 
 		</div>
+	
+
+ 
 	
 
  

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  C++程序中内嵌git-commit-id - 
+  Go - 
   
   </title>
  <meta name="description" content="">
@@ -115,67 +115,72 @@
             </div>
             <div class="large-9 medium-9 columns">
 
- <div class="markdown-body">
-<h1>C++程序中内嵌git-commit-id</h1>
-
-<h2 id="toc_0">项目配置</h2>
-
-<ul>
-<li>构建方式：visual studio 2017</li>
-<li>运行平台：win10</li>
-<li>运行方式：dll</li>
-</ul>
-
-<h2 id="toc_1">项目需求</h2>
-
-<p>希望在dll中可以获得最近构建代码的git commit id，组成dll的版本号，方便管理与出现问题时定位原因。</p>
-
-<h2 id="toc_2">解决方案</h2>
-
-<h3 id="toc_3">实现原理</h3>
-
-<p><img src="media/15541984932923/15544542857792.jpg" alt="" style="width:726px;"/><br/>
-之后就可以直接在dll代码中引入该头文件访问git id</p>
+ 
 
 
-</div>
+	
+		<div class="markdown-body">
+		<h1>关于dep和go modules</h1>
 
-<br /><br />
-<hr />
+		<h2 id="toc_0">主流依赖管理解决方案</h2>
 
-<div class="row clearfix">
-  <div class="large-6 columns">
-	<div class="text-left" style="padding:15px 0px;">
-		
-	        <a href="15542006928473.html"  title="Previous Post: book-list">&laquo; book-list</a>
-	    
-	</div>
-  </div>
-  <div class="large-6 columns">
-	<div class="text-right" style="padding:15px 0px;">
-		
-	        <a href="15541749831215.html" 
-	        title="Next Post: 中文乱码问题总结">中文乱码问题总结 &raquo;</a>
-	    
-	</div>
-  </div>
-</div>
+<ol>
+<li>manifest file记录依赖信息</li>
+<li>使用满足manifest file需求的最新package版本</li>
+<li>使用lock file记录依赖module具体版本号，由算法生成</li>
+<li>从manifest file到lock file的版本选择是np-completeness search problem</li>
+</ol>
 
-<div class="row">
-<div style="padding:0px 0.93em;" class="share-comments">
+<h2 id="toc_1">go modules解决方案</h2>
 
-</div>
-</div>
-<script type="text/javascript">
-	$(function(){
-		var currentURL = '15541984932923.html';
-		$('#side-nav a').each(function(){
-			if($(this).attr('href') == currentURL){
-				$(this).parent().addClass('active');
-			}
-		});
-	});
-</script>  
+<h3 id="toc_2">版本号</h3>
+
+<ol>
+<li>确立版本号具体要求，表示为v major.minor.patch，如v1.2.0。</li>
+<li>major意味着存在不兼容改变。在go <br/>
+模型中意味着不同的package，表现为：<br/>
+2.1. 对major version大于2的module，需要在import路径上体现，如<code>import &quot;github.com/my/mod/v2/mypkg&quot;</code><br/>
+2.2. 在一个项目中同时存在对一个package不同版本的依赖被认为是合理的</li>
+<li>对于major version相同的版本号，需要向后兼容，即1.3.5需要兼容1.2.8。</li>
+<li>第三条对major version为0时不成立</li>
+</ol>
+
+<h3 id="toc_3">版本选择</h3>
+
+<ol>
+<li>go modules模型中每个项目申明他们依赖package的最小版本</li>
+<li>go modules每次只会选择满足依赖的最小版本号，即如果项目依赖<em>mypkg v1.6.2</em>那么安装依赖package时只会安装v1.6.2，不管是否存在更新的版本。</li>
+<li>存在依赖冲突时，选最大的那个版本号。如项目同时依赖<em>mypkg v1.3.0</em>和<em>mypkg v1.4.0</em>，那么最终项目构建时使用<em>mypkg v1.4.0</em></li>
+<li>以来package只能由用户手动完成</li>
+<li>理由<br/>
+5.1. High-Fidelity，高保真性，不做不必要的更新。<br/>
+5.2. 算法实现是线性</li>
+</ol>
+
+<h2 id="toc_4">总结</h2>
+
+<h3 id="toc_5">why dep？</h3>
+
+<ol>
+<li>在vgo出来之前一度被认为将在未来某个时刻merge进go，形成go dep</li>
+<li>使用主流解决方案，易于理解</li>
+<li>对源代码修改较少</li>
+</ol>
+
+<h3 id="toc_6">why go modules？</h3>
+
+<ol>
+<li>官方工具</li>
+<li>将依赖管理集成到go命令当中，如go build时直接下载依赖项，操作简单。</li>
+<li>允许在单个构建中使用程序的多个主要版本</li>
+</ol>
+
+
+		</div>
+	
+
+  
+  
 </div></div>
 
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  中文乱码问题总结 - 
+  关于dep和go modules - 
   
   </title>
  <meta name="description" content="">
@@ -116,104 +116,60 @@
             <div class="large-9 medium-9 columns">
 
  <div class="markdown-body">
-<h1>中文乱码问题总结</h1>
+<h1>关于dep和go modules</h1>
 
-<p>最近在实现项目时，需要调用windows的MessageBox接口弹出对话框，当传入字符串是中文时，对话框显示乱码。将文件格式另存为utf-8 with bom或者gb2312就可以正常显示，后来花时间研究了编码的问题，大概摸清楚了。</p>
-
-<h2 id="toc_0">乱码原因</h2>
-
-<p>程序出现乱码的本质原因是用错误的字符集去解析字符。计算机运行的程序里，程序中的每个字符都会被转换为二进制，不同的字符集就是将字符到二进制的不同映射方式。</p>
-
-<h2 id="toc_1">字符集</h2>
-
-<table>
-<thead>
-<tr>
-<th>字符集</th>
-<th>年份</th>
-<th>兼容性</th>
-<th>编码形式</th>
-<th>备注</th>
-</tr>
-</thead>
-
-<tbody>
-<tr>
-<td>ASCII</td>
-<td>1967</td>
-<td></td>
-<td>使用单字节，可表示256个字符</td>
-<td>美国标准，不能满足其他国家甚至其他英语国家，如￡</td>
-</tr>
-<tr>
-<td>GB2312/GB2312-80</td>
-<td>1981.5.1</td>
-<td>ASCII</td>
-<td>任意字符都采用2字节</td>
-<td>简化字汉字，以及一般常用字母和符号。对于人名、古汉语等方面出现的罕用字无法表示</td>
-</tr>
-<tr>
-<td>GBK</td>
-<td>1995.12</td>
-<td>ASCII,GB2312</td>
-<td>任意字符都采用2字节</td>
-<td>加入对繁体字支持</td>
-</tr>
-<tr>
-<td>Unicode</td>
-<td>1984.4</td>
-<td></td>
-<td>定长2字节/4字节编码</td>
-<td>定长编码便于计算机处理。可表示所有字符，java内部使用unicode</td>
-</tr>
-<tr>
-<td>utf-8</td>
-<td></td>
-<td>兼容ASCII</td>
-<td>变长1-6字节。一般英文1字节，中文3字节</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-
-<h2 id="toc_2">字符集与程序的关系</h2>
-
-<p>先从程序的执行流程开始谈起，下图是一个文件从编写到编译到执行的过程。<br/>
-<img src="media/15541749831215/15541819142012.jpg" alt="" style="width:785px;"/><br/>
-在这个过程中存在三种字符集概念：</p>
+<h2 id="toc_0">主流依赖管理解决方案</h2>
 
 <ol>
-<li>源码字符集：源程序代码编码字符集，可以通过vscode、notepad++等文本编辑工具查看某个文件的编码字符集，该编码字符集就是源码字符集。源码字符集主要决定源代码转换成字节码的方式。所以，如果代码文件中包含中文字符，那么源码字符集将决定该字符转换后的字节码。</li>
-<li>执行字符集：执行字符集是程序编译器编译程序时采用的字符集。由上图可以看到，源代码文件经过编译器后生成.s后缀的汇编程序文件，执行字符集决定如何将转换成字节码的代码文件再次解释、检查语法、生成汇编语言。如果执行字符集与源码字符集不相同，会造成中文乱码，甚至会出现奇怪的编译错误。</li>
-<li>解析字符集：程序执行时需要显示原字符时采用的解析字符集，比如在控制台显示程序中的字符串，会通过解析字符集找到特定的字符进行显示。</li>
+<li>manifest file记录依赖信息</li>
+<li>使用满足manifest file需求的最新package版本</li>
+<li>使用lock file记录依赖module具体版本号，由算法生成</li>
+<li>从manifest file到lock file的版本选择是np-completeness search problem</li>
 </ol>
 
-<h3 id="toc_3">字符集默认值</h3>
+<h2 id="toc_1">go modules解决方案</h2>
 
-<p><strong><em>locale</em></strong>: windows系统中的一项<strong>系统设置</strong>，用来决定文件编码方式，对于中国大陆，locale是Chinese PRC，则此时ANSI编码为GBK。可以理解为系统默认的编码方式。</p>
-
-<ul>
-<li>执行字符集：在编译器无法识别源代码使用何种字符集时采用locale。</li>
-<li>解析字符集：在默认情况下是根据locale设置的，即GBK编码。</li>
-</ul>
-
-<h2 id="toc_4">乱码案例重现</h2>
-
-<pre><code class="language-cpp">const char* test = &quot;啊啊&quot;;
-</code></pre>
-
-<p>源文件采用utf-8编码，上述代码的字符串会被编码为E5958A;E5958A，使用GBK编码解析时解析为<em>鍟婂晩</em>，这就是乱码产生的原因。如果只有一个<em>啊</em>的话会出现编译错误，因为GBK编码是定长2字节，解析<em>啊</em>时会把最后一字节与后面的分号编码的字节组成新的GBK字符。</p>
-
-<h2 id="toc_5">解决方案</h2>
-
-<p>乱码问题本质上就是源代码字符集与执行字符集和解析字符集不同产生，解决方案就是修改前者或后者。</p>
+<h3 id="toc_2">版本号</h3>
 
 <ol>
-<li>修改源代码字符集：可以将源代码字符集修改成与执行字符集相同的GBK编码或者utf-8 with  bom。utf-8 with bom可行的原因在于该编码方式会在编码起点加上0xef,0xbb,0xbf三个字节的bom头，编译器通过bom头可以判断源代码使用utf-8进行编码，不会根据locale选择编码方式。缺点是无法在大型项目进行代码共享，因为utf-8在网站、论坛使用更广泛。</li>
-<li>修改执行字符集与解析字符集：对于visual studio，添加命令/utf-8进行设置。</li>
+<li>确立版本号具体要求，表示为v major.minor.patch，如v1.2.0。</li>
+<li>major意味着存在不兼容改变。在go <br/>
+模型中意味着不同的package，表现为：<br/>
+2.1. 对major version大于2的module，需要在import路径上体现，如<code>import &quot;github.com/my/mod/v2/mypkg&quot;</code><br/>
+2.2. 在一个项目中同时存在对一个package不同版本的依赖被认为是合理的</li>
+<li>对于major version相同的版本号，需要向后兼容，即1.3.5需要兼容1.2.8。</li>
+<li>第三条对major version为0时不成立</li>
 </ol>
 
-<p>找到很好用的<a href="http://www.mytju.com/classcode/tools/messyCodeRecover.asp">检查乱码</a>的网站</p>
+<h3 id="toc_3">版本选择</h3>
+
+<ol>
+<li>go modules模型中每个项目申明他们依赖package的最小版本</li>
+<li>go modules每次只会选择满足依赖的最小版本号，即如果项目依赖<em>mypkg v1.6.2</em>那么安装依赖package时只会安装v1.6.2，不管是否存在更新的版本。</li>
+<li>存在依赖冲突时，选最大的那个版本号。如项目同时依赖<em>mypkg v1.3.0</em>和<em>mypkg v1.4.0</em>，那么最终项目构建时使用<em>mypkg v1.4.0</em></li>
+<li>以来package只能由用户手动完成</li>
+<li>理由<br/>
+5.1. High-Fidelity，高保真性，不做不必要的更新。<br/>
+5.2. 算法实现是线性</li>
+</ol>
+
+<h2 id="toc_4">总结</h2>
+
+<h3 id="toc_5">why dep？</h3>
+
+<ol>
+<li>在vgo出来之前一度被认为将在未来某个时刻merge进go，形成go dep</li>
+<li>使用主流解决方案，易于理解</li>
+<li>对源代码修改较少</li>
+</ol>
+
+<h3 id="toc_6">why go modules？</h3>
+
+<ol>
+<li>官方工具</li>
+<li>将依赖管理集成到go命令当中，如go build时直接下载依赖项，操作简单。</li>
+<li>允许在单个构建中使用程序的多个主要版本</li>
+</ol>
 
 
 </div>
@@ -225,13 +181,14 @@
   <div class="large-6 columns">
 	<div class="text-left" style="padding:15px 0px;">
 		
-	        <a href="15541984932923.html"  title="Previous Post: C++程序中内嵌git-commit-id">&laquo; C++程序中内嵌git-commit-id</a>
-	    
 	</div>
   </div>
   <div class="large-6 columns">
 	<div class="text-right" style="padding:15px 0px;">
 		
+	        <a href="15545208197317.html" 
+	        title="Next Post: 《重构-改善即有代码的设计》">《重构-改善即有代码的设计》 &raquo;</a>
+	    
 	</div>
   </div>
 </div>
@@ -243,7 +200,7 @@
 </div>
 <script type="text/javascript">
 	$(function(){
-		var currentURL = '15541749831215.html';
+		var currentURL = '15549797838222.html';
 		$('#side-nav a').each(function(){
 			if($(this).attr('href') == currentURL){
 				$(this).parent().addClass('active');
